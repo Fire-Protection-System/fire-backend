@@ -1,6 +1,9 @@
 package pl.edu.agh.kis.firebackend.controller;
 
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import pl.edu.agh.kis.firebackend.model.FireBrigadeAction;
@@ -12,16 +15,19 @@ import java.util.Date;
 import java.util.Map;
 
 @RestController
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RequestMapping("/test")
 public class TestController {
 
-    private StateUpdatesService stateUpdatesService;
-    private HttpRequestService httpRequestService;
+    private final StateUpdatesService stateUpdatesService;
+    private final HttpRequestService httpRequestService;
+
+    @Value("${SIMULATOR_PORT}") 
+    private int simulatorPort;
 
     @PostMapping("/sendData")
     public String sendData(@RequestBody Map<String, Object> data) {
-        String url = "http://127.0.0.1:5000/run_simulation";
+        String url = "http://127.0.0.1:" + simulatorPort + "/run_simulation";
         return httpRequestService.sendPostRequest(url, data);
     }
 
