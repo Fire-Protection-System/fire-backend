@@ -1,17 +1,14 @@
-# base image 
-FROM openjdk:21-jdk-slim
-
-# set working directory 
+FROM openjdk:21-jdk-slim AS builder
 WORKDIR /app
 
-# copy app code
+# Build the application
+RUN apt-get update && apt-get install -y dos2unix
 COPY . /app
+RUN dos2unix gradlew && chmod +x ./gradlew
+RUN ./gradlew bootJar --no-daemon
 
-# make gradlew executable 
-RUN chmod +x ./gradlew
-
-# set environment variable for Spring
-ENV SPRING_PROFILES_ACTIVE=dev
-
-# start app
-CMD ["./gradlew", "bootRun"]
+# Run the application
+FROM openjdk:21-slim
+WORKDIR /app
+COPY --from=builder /app/build/libs/*.jar app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]
