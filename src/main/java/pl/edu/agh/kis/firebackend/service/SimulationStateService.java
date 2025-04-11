@@ -187,24 +187,9 @@ public class SimulationStateService {
         log.info("All sensor subscriptions established, starting interval-based state emission");
         
         return Flux.interval(interval)
-            .doOnSubscribe(subscription -> {
-                log.info("Client subscribed to simulation state stream");
-            })
-            .doOnNext(tick -> {
-                log.info("Producing tick {}", tick);
-            })
-            .doOnCancel(() -> {
-                log.info("Client cancelled subscription");
-            })
-            .doOnError(error -> {
-                log.error("Error in simulation stream: {}", error.getMessage(), error);
-            })
             .map(tick -> {
                 synchronized(state) {
-                    log.info("Emitting simulation state update (tick: {})", tick);
                     SimulationStateDto dto = SimulationStateDto.from(state);
-                    log.info("State data: {} sectors, {} fire brigades, {} forester patrols", 
-                        dto.sectors().size(), dto.fireBrigades(), dto.foresterPatrols());
                     return dto;
                 }
             });
