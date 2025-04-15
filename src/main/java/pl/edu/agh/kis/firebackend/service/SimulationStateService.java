@@ -42,136 +42,155 @@ public class SimulationStateService {
     private static final Logger log = LoggerFactory.getLogger(SimulationStateService.class);
 
     public Flux<SimulationStateDto> runSimulation(Configuration configuration, Duration interval) {
+        log.info("Starting simulation with interval: {} seconds", interval.getSeconds());
+        log.info("Configuration: {}", configuration);
+        
         SimulationState state = SimulationState.from(configuration);
+        log.info("Initial state created with {} sectors", state.sectors.size());
 
         fireBrigadeFlux.subscribeOn(Schedulers.parallel())            
             .subscribe(fireBrigade -> {
                 Integer key = fireBrigade.fireBrigadeId();                
-                System.out.println("-----------------aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-----------------");
-                System.out.println("-----------------aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-----------------");
-                System.out.println("-----------------aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-----------------");
-                System.out.println("-----------------aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-----------------");
-                System.out.println("Fire brigade id: " + key);
-                System.out.println("Fire brigade: " + fireBrigade);
+                log.info("Fire brigade event received - ID: {}, Location: {}", key, fireBrigade.location());
+                
                 synchronized (state) {
                     state.fireBrigades.put(key, FireBrigade.from(fireBrigade));
+                    log.debug("Fire brigade state updated - ID: {}", key);
                 }
         });
 
         foresterPatrolFlux.subscribeOn(Schedulers.parallel())
             .subscribe(foresterPatrol -> {
                 Integer key = foresterPatrol.foresterPatrolId();
-                System.out.println("-----------------bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-----------------");
-                System.out.println("-----------------bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-----------------");
-                System.out.println("-----------------bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-----------------");
-                System.out.println("-----------------bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-----------------");
-                System.out.println("Forester patrol id: " + key);
-                System.out.println("Forester patrol: " + foresterPatrol);
+                log.info("Forester patrol event received - ID: {}, Location: {}", key, foresterPatrol.location());
 
                 synchronized (state) {
                     state.foresterPatrols.put(key, ForesterPatrol.from(foresterPatrol));
+                    log.debug("Forester patrol state updated - ID: {}", key);
                 }
         });
 
         windSpeedSensorFlux.subscribeOn(Schedulers.parallel())
             .subscribe(windSpeedSensor -> {
+                log.debug("Wind speed sensor event received at location: {}", windSpeedSensor.location());
+                
                 Optional<Integer> sectorIdOptional = SectorIdResolver.resolveSectorId(state.sectors.values().stream().toList(), windSpeedSensor.location());
                 if (sectorIdOptional.isEmpty()) {
-                    log.warn("Sector at location {} not found!", windSpeedSensor.location());
+                    log.warn("Sector at location {} not found for wind speed sensor!", windSpeedSensor.location());
                     return;
                 }
                 Integer sectorId = sectorIdOptional.get();
                 synchronized (state) {
                     state.sectors.get(sectorId).state.windSpeed = windSpeedSensor.data().windSpeed();
+                    log.debug("Wind speed updated for sector {}: {} m/s", sectorId, windSpeedSensor.data().windSpeed());
                 }
         });
 
         tempAndAirHumiditySensorFlux.subscribeOn(Schedulers.parallel())
             .subscribe(tempAndAirHumiditySensor -> {
+                log.debug("Temperature and humidity sensor event received at location: {}", tempAndAirHumiditySensor.location());
+                
                 Optional<Integer> sectorIdOptional = SectorIdResolver.resolveSectorId(state.sectors.values().stream().toList(), tempAndAirHumiditySensor.location());
                 if (sectorIdOptional.isEmpty()) {
-                    log.warn("Sector at location {} not found!", tempAndAirHumiditySensor.location());
+                    log.warn("Sector at location {} not found for temperature and humidity sensor!", tempAndAirHumiditySensor.location());
                     return;
                 }
                 Integer sectorId = sectorIdOptional.get();
                 synchronized (state) {
                     state.sectors.get(sectorId).state.temperature = tempAndAirHumiditySensor.data().temperature();
                     state.sectors.get(sectorId).state.airHumidity = tempAndAirHumiditySensor.data().airHumidity();
-                    System.out.println("----------------------cccccccccccccccccccccccccccccccccccc----------------------");
-                    System.out.println("Sector id: " + sectorId);
-                    System.out.println("Temperature: " + tempAndAirHumiditySensor.data().temperature());
+                    log.debug("Temperature updated for sector {}: {}°C", sectorId, tempAndAirHumiditySensor.data().temperature());
+                    log.debug("Air humidity updated for sector {}: {}%", sectorId, tempAndAirHumiditySensor.data().airHumidity());
                 }
         });
 
         windDirectionSensorFlux.subscribeOn(Schedulers.parallel())
             .subscribe(windDirectionSensor -> {
+                log.debug("Wind direction sensor event received at location: {}", windDirectionSensor.location());
+                
                 Optional<Integer> sectorIdOptional = SectorIdResolver.resolveSectorId(state.sectors.values().stream().toList(), windDirectionSensor.location());
                 if (sectorIdOptional.isEmpty()) {
-                    log.warn("Sector at location {} not found!", windDirectionSensor.location());
+                    log.warn("Sector at location {} not found for wind direction sensor!", windDirectionSensor.location());
                     return;
                 }
                 Integer sectorId = sectorIdOptional.get();
                 synchronized (state) {
                     state.sectors.get(sectorId).state.windDirection = windDirectionSensor.data().windDirection();
+                    log.debug("Wind direction updated for sector {}: {} degrees", sectorId, windDirectionSensor.data().windDirection());
                 }
         });
 
         litterMoistureSensorFlux.subscribeOn(Schedulers.parallel())
             .subscribe(litterMoistureSensor -> {
+                log.debug("Litter moisture sensor event received at location: {}", litterMoistureSensor.location());
+                
                 Optional<Integer> sectorIdOptional = SectorIdResolver.resolveSectorId(state.sectors.values().stream().toList(), litterMoistureSensor.location());
                 if (sectorIdOptional.isEmpty()) {
-                    log.warn("Sector at location {} not found!", litterMoistureSensor.location());
+                    log.warn("Sector at location {} not found for litter moisture sensor!", litterMoistureSensor.location());
                     return;
                 }
                 Integer sectorId = sectorIdOptional.get();
                 synchronized (state) {
                     state.sectors.get(sectorId).state.plantLitterMoisture = litterMoistureSensor.data().litterMoisture();
+                    log.debug("Plant litter moisture updated for sector {}: {}%", sectorId, litterMoistureSensor.data().litterMoisture());
                 }
         });
 
         co2SensorFlux.subscribeOn(Schedulers.parallel())
                 .subscribe(co2Sensor -> {
+                    log.debug("CO2 sensor event received at location: {}", co2Sensor.location());
+                    
                     Optional<Integer> sectorIdOptional = SectorIdResolver.resolveSectorId(state.sectors.values().stream().toList(), co2Sensor.location());
                     if (sectorIdOptional.isEmpty()) {
-                        log.warn("Sector at location {} not found!", co2Sensor.location());
+                        log.warn("Sector at location {} not found for CO2 sensor!", co2Sensor.location());
                         return;
                     }
                     Integer sectorId = sectorIdOptional.get();
                     synchronized (state) {
                         state.sectors.get(sectorId).state.co2Concentration = co2Sensor.data().co2Concentration();
+                        log.debug("CO2 concentration updated for sector {}: {} ppm", sectorId, co2Sensor.data().co2Concentration());
                     }
         });
 
         pm25ConcentrationSensorFlux.subscribeOn(Schedulers.parallel())
                 .subscribe(pm25ConcentrationSensor -> {
+                    log.debug("PM2.5 concentration sensor event received at location: {}", pm25ConcentrationSensor.location());
+                    
                     Optional<Integer> sectorIdOptional = SectorIdResolver.resolveSectorId(state.sectors.values().stream().toList(), pm25ConcentrationSensor.location());
                     if (sectorIdOptional.isEmpty()) {
-                        log.warn("Sector at location {} not found!", pm25ConcentrationSensor.location());
+                        log.warn("Sector at location {} not found for PM2.5 concentration sensor!", pm25ConcentrationSensor.location());
                         return;
                     }
                     Integer sectorId = sectorIdOptional.get();
                     synchronized (state) {
                         state.sectors.get(sectorId).state.pm2_5Concentration = pm25ConcentrationSensor.data().pm2_5Concentration();
+                        log.debug("PM2.5 concentration updated for sector {}: {} μg/m³", sectorId, pm25ConcentrationSensor.data().pm2_5Concentration());
                     }
         });
 
         cameraFlux.subscribeOn(Schedulers.parallel())
                 .subscribe(camera -> {
+                    log.debug("Camera event received at location: {}", camera.location());
+                    
                     Optional<Integer> sectorIdOptional = SectorIdResolver.resolveSectorId(state.sectors.values().stream().toList(), camera.location());
                     if (sectorIdOptional.isEmpty()) {
-                        log.warn("Sector at location {} not found!", camera.location());
+                        log.warn("Sector at location {} not found for camera!", camera.location());
                         return;
                     }
                     Integer sectorId = sectorIdOptional.get();
                     synchronized (state) {
-                        // TODO: Handle it in some way
+                        // TODO: Handle camera data in some way
+                        log.debug("Camera data received for sector {}", sectorId);
                     }
         });
 
+        log.info("All sensor subscriptions established, starting interval-based state emission");
+        
         return Flux.interval(interval)
             .map(tick -> {
                 synchronized(state) {
-                    return SimulationStateDto.from(state);
+                    SimulationStateDto dto = SimulationStateDto.from(state);
+                    return dto;
                 }
             });
     }
