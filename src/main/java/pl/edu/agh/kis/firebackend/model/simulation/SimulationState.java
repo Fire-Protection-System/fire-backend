@@ -3,6 +3,8 @@ package pl.edu.agh.kis.firebackend.model.simulation;
 import lombok.AllArgsConstructor;
 import pl.edu.agh.kis.firebackend.model.configuration.Configuration;
 
+import pl.edu.agh.kis.firebackend.model.events.EvRecommendation;
+import pl.edu.agh.kis.firebackend.model.events.RecommendedAction;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,7 +16,7 @@ public class SimulationState {
     public Map<Integer, Sector> sectors;
     public Map<Integer, FireBrigade> fireBrigades;
     public Map<Integer, ForesterPatrol> foresterPatrols;
-
+    public Map<Integer, RecommendedAction> recommendedActions; 
 
     public SimulationState() {
         this.forestName = "";
@@ -22,6 +24,7 @@ public class SimulationState {
         this.sectors = new HashMap<>();
         this.fireBrigades = new HashMap<>();
         this.foresterPatrols = new HashMap<>();
+        this.recommendedActions = new HashMap<>();  
         // this.foresterPatrols.put(1, new ForesterPatrol(1, new Date(), ForesterPatrolState.PATROLLING, new Location(1.0, 1.0), new Location(12.0, 12.0)));
     }
 
@@ -30,21 +33,26 @@ public class SimulationState {
                 .sectors()
                 .stream()
                 .collect(Collectors.toMap(sector -> sector.sectorId(), Sector::from));
+        
         Map<Integer, FireBrigade>  fireBrigades = configuration
                 .fireBrigades()
                 .stream()
                 .collect(Collectors.toMap(fireBrigade -> fireBrigade.fireBrigadeId(), FireBrigade::from));
+        
         Map<Integer, ForesterPatrol> foresterPatrols = configuration
                 .foresterPatrols()
                 .stream()
                 .collect(Collectors.toMap(foresterPatrol -> foresterPatrol.foresterPatrolId(), ForesterPatrol::from));
-
+        
+        Map<Integer, RecommendedAction> recommendedActions = new HashMap<>(); 
+        
         return new SimulationState(
                 configuration.forestName(),
                 new Date(),
                 sectors,
                 fireBrigades,
-                foresterPatrols
+                foresterPatrols,
+                recommendedActions
         );
     }
 }
