@@ -17,6 +17,7 @@ import pl.edu.agh.kis.firebackend.model.events.EvForestPatrol;
 import pl.edu.agh.kis.firebackend.model.events.EvLitterMoistureSensor;
 import pl.edu.agh.kis.firebackend.model.events.EvPM25ConcentrationSensor;
 import pl.edu.agh.kis.firebackend.model.events.EvRecommendation;
+import pl.edu.agh.kis.firebackend.model.events.EvSectorState;
 import pl.edu.agh.kis.firebackend.model.events.RecommendedAction;
 import pl.edu.agh.kis.firebackend.model.events.EvTempAndAirHumiditySensor;
 import pl.edu.agh.kis.firebackend.model.events.EvWindDirectionSensor;
@@ -42,6 +43,7 @@ public class SimulationStateService {
     private Flux<EvPM25ConcentrationSensor> pm25ConcentrationSensorFlux;
     private Flux<EvCamera> cameraFlux;
     private Flux<EvRecommendation> recommendationFlux;
+    private Flux<EvSectorState> sectorStateFlux;
 
     private static final Logger log = LoggerFactory.getLogger(SimulationStateService.class);
 
@@ -204,6 +206,16 @@ public class SimulationStateService {
                             state.recommendedActions.put(action.unitId(), action);
                         }
                     }            
+                });
+
+        sectorStateFlux.subscribeOn(Schedulers.parallel())
+                .subscribe(sectorState -> {
+                    Integer sectorId = sectorState.sectorId();
+                    synchronized (state) {
+                        state.sectors.get(sectorId).state.fireLevel = sectorState.fireLevel();
+                        state.sectors.get(sectorId).state.burnLevel = sectorState.burnLevel();
+                        state.sectors.get(sectorId).state.extinguishLevel = sectorState.extinguishLevel();
+                    }
                 });
 
         log.info("All sensor subscriptions established, starting interval-based state emission");

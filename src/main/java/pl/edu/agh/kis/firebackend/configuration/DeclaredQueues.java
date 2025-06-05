@@ -8,6 +8,9 @@ import pl.edu.agh.kis.firebackend.model.events.*;
 import pl.edu.agh.kis.firebackend.service.StateUpdatesService;
 import reactor.core.publisher.Flux;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Configuration
 @AllArgsConstructor
 public class DeclaredQueues {
@@ -62,5 +65,11 @@ public class DeclaredQueues {
     Flux<EvRecommendation> simulationRecommendations(){
         return stateUpdatesService.createUpdatesFlux(new UpdatesQueue<>("Recommended action queue", EvRecommendation.class));
     }
+
+    @Bean
+    Flux<EvSectorState> simulationState(){
+        return stateUpdatesService.createUpdatesFlux(new UpdatesQueue<>("Sector state queue", EvSectorState.class));
+    }
+
 
 }
