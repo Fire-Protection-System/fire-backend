@@ -58,4 +58,9 @@ public class DeclaredQueues {
         return stateUpdatesService.createUpdatesFlux(new UpdatesQueue<>("Camera queue", EvCamera.class));
     }
 
+    @Bean
+    Flux<EvRecommendation> simulationRecommendations(){
+        return stateUpdatesService.createUpdatesFlux(new UpdatesQueue<>("Recommended action queue", EvRecommendation.class));
+    }
+
 }
