@@ -2,6 +2,7 @@ package pl.edu.agh.kis.firebackend.service;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,9 @@ import pl.edu.agh.kis.firebackend.model.events.EvFireBrigade;
 import pl.edu.agh.kis.firebackend.model.events.EvForestPatrol;
 import pl.edu.agh.kis.firebackend.model.events.EvLitterMoistureSensor;
 import pl.edu.agh.kis.firebackend.model.events.EvPM25ConcentrationSensor;
+import pl.edu.agh.kis.firebackend.model.events.EvRecommendation;
+import pl.edu.agh.kis.firebackend.model.events.EvSectorState;
+import pl.edu.agh.kis.firebackend.model.events.RecommendedAction;
 import pl.edu.agh.kis.firebackend.model.events.EvTempAndAirHumiditySensor;
 import pl.edu.agh.kis.firebackend.model.events.EvWindDirectionSensor;
 import pl.edu.agh.kis.firebackend.model.events.EvWindSpeedSensor;
@@ -38,6 +42,8 @@ public class SimulationStateService {
     private Flux<EvCO2Sensor> co2SensorFlux;
     private Flux<EvPM25ConcentrationSensor> pm25ConcentrationSensorFlux;
     private Flux<EvCamera> cameraFlux;
+    private Flux<EvRecommendation> recommendationFlux;
+    private Flux<EvSectorState> sectorStateFlux;
 
     private static final Logger log = LoggerFactory.getLogger(SimulationStateService.class);
 
@@ -183,6 +189,34 @@ public class SimulationStateService {
                         log.debug("Camera data received for sector {}", sectorId);
                     }
         });
+
+        recommendationFlux.subscribeOn(Schedulers.parallel())
+                .subscribe(recommendation -> {
+                    log.debug("New recommendation received at timestamp: {}", recommendation.timestamp());
+                    
+                    List<RecommendedAction> actions = recommendation.recommendedActions();
+                    if (actions == null) {
+                        log.warn("Received recommendation with null recommendedActions list at timestamp: {}", recommendation.timestamp());
+                        return; // or continue, depending on context
+                    }
+        
+                    // Integer sectorId = sectorIdOptional.get();
+                    for (RecommendedAction action : actions) {
+                        synchronized (state) {
+                            state.recommendedActions.put(action.unitId(), action);
+                        }
+                    }            
+                });
+
+        sectorStateFlux.subscribeOn(Schedulers.parallel())
+                .subscribe(sectorState -> {
+                    Integer sectorId = sectorState.sectorId();
+                    synchronized (state) {
+                        state.sectors.get(sectorId).state.fireLevel = sectorState.fireLevel();
+                        state.sectors.get(sectorId).state.burnLevel = sectorState.burnLevel();
+                        state.sectors.get(sectorId).state.extinguishLevel = sectorState.extinguishLevel();
+                    }
+                });
 
         log.info("All sensor subscriptions established, starting interval-based state emission");
         

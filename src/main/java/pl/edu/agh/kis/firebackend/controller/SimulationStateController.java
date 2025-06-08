@@ -39,6 +39,7 @@ public class SimulationStateController {
             @RequestBody Configuration configuration) {
         log.info("Received run-simulation request with interval={}", interval);
         log.info("Configuration: {}", configuration);
+        //poniewaz tutaj jest uruchamiana symulacja, pasuje tez ja zatrzymac, wiec trzeba skads wziac ten obiekt
         return simulationStateService.runSimulation(configuration, Duration.ofSeconds(interval));
     }
 
@@ -48,4 +49,11 @@ public class SimulationStateController {
         httpRequestService.sendPostRequest("http://fire-simulation:" + simulatorPort + "/run_simulation", configuration);
         return ResponseEntity.ok("Configuration send to simulation!");  
     }
+    @PostMapping("/stop-simulation")
+    public ResponseEntity<String> sendStopRequest() {
+        log.info("Sending HTTP request to stop simulation...");
+        httpRequestService.sendPostRequest("http://fire-simulation:" + simulatorPort + "/stop_simulation","");
+        return ResponseEntity.ok("Stop request sent!");
+    }
+
 }

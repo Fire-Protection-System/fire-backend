@@ -17,4 +17,9 @@ public class SectorState {
     public double pm2_5Concentration;
     ThreatLevel threatLevel;
     FireState fireState;
+
+    // For debugging purposes
+    public double fireLevel;
+    public double burnLevel; 
+    public double extinguishLevel;
 }
