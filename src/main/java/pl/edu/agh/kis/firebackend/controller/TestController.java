@@ -26,7 +26,8 @@ public class TestController {
     private int simulatorPort;
 
     @PostMapping("/sendData")
-    public String sendData(@RequestBody Map<String, Object> data) {
+    public String sendData(@RequestBody Map<String, Object> data) 
+    {
         String url = "http://127.0.0.1:" + simulatorPort + "/run_simulation";
         return httpRequestService.sendPostRequest(url, data);
     }

@@ -32,7 +32,8 @@ import reactor.core.scheduler.Schedulers;
 
 @Service
 @AllArgsConstructor
-public class SimulationStateService {
+public class SimulationStateService 
+{
     private Flux<EvFireBrigade> fireBrigadeFlux;
     private Flux<EvForestPatrol> foresterPatrolFlux;
     private Flux<EvWindSpeedSensor> windSpeedSensorFlux;
@@ -47,7 +48,8 @@ public class SimulationStateService {
 
     private static final Logger log = LoggerFactory.getLogger(SimulationStateService.class);
 
-    public Flux<SimulationStateDto> runSimulation(Configuration configuration, Duration interval) {
+    public Flux<SimulationStateDto> runSimulation(Configuration configuration, Duration interval) 
+    {
         log.info("Starting simulation with interval: {} seconds", interval.getSeconds());
         log.info("Configuration: {}", configuration);
         
@@ -55,42 +57,56 @@ public class SimulationStateService {
         log.info("Initial state created with {} sectors", state.sectors.size());
 
         fireBrigadeFlux.subscribeOn(Schedulers.parallel())            
-            .subscribe(fireBrigade -> {
+            .subscribe(fireBrigade -> 
+            {
                 Integer key = fireBrigade.fireBrigadeId();                
                 log.info("Fire brigade event received - ID: {}, Location: {}", key, fireBrigade.location());
                 
-                synchronized (state) {
+                synchronized (state) 
+                {
                     state.fireBrigades.put(key, FireBrigade.from(fireBrigade));
                     log.debug("Fire brigade state updated - ID: {}", key);
                 }
-        });
+            });
 
         foresterPatrolFlux.subscribeOn(Schedulers.parallel())
-            .subscribe(foresterPatrol -> {
+            .subscribe(foresterPatrol -> 
+            {
                 Integer key = foresterPatrol.foresterPatrolId();
                 log.info("Forester patrol event received - ID: {}, Location: {}", key, foresterPatrol.location());
 
-                synchronized (state) {
+                synchronized (state) 
+                {
                     state.foresterPatrols.put(key, ForesterPatrol.from(foresterPatrol));
                     log.debug("Forester patrol state updated - ID: {}", key);
                 }
         });
 
-        windSpeedSensorFlux.subscribeOn(Schedulers.parallel())
-            .subscribe(windSpeedSensor -> {
+        windSpeedSensorFlux
+            .subscribeOn(Schedulers.parallel())
+            .subscribe(windSpeedSensor -> 
+            {
                 log.debug("Wind speed sensor event received at location: {}", windSpeedSensor.location());
-                
-                Optional<Integer> sectorIdOptional = SectorIdResolver.resolveSectorId(state.sectors.values().stream().toList(), windSpeedSensor.location());
-                if (sectorIdOptional.isEmpty()) {
+
+                var stateSectorLists = state.sectors.values().stream().toList();
+                Optional<Integer> sectorIdOptional = SectorIdResolver.resolveSectorId(stateSectorLists, windSpeedSensor.location());
+
+                if (sectorIdOptional.isEmpty()) 
+                {
                     log.warn("Sector at location {} not found for wind speed sensor!", windSpeedSensor.location());
                     return;
                 }
+
                 Integer sectorId = sectorIdOptional.get();
-                synchronized (state) {
-                    state.sectors.get(sectorId).state.windSpeed = windSpeedSensor.data().windSpeed();
-                    log.debug("Wind speed updated for sector {}: {} m/s", sectorId, windSpeedSensor.data().windSpeed());
+                var windSpeed = windSpeedSensor.data().windSpeed();
+
+                synchronized (state.sectors.get(sectorId)) 
+                {
+                    state.sectors.get(sectorId).state.windSpeed = windSpeed;
                 }
-        });
+
+                log.debug("Wind speed updated for sector {}: {} m/s", sectorId, windSpeed);
+            });
 
         tempAndAirHumiditySensorFlux.subscribeOn(Schedulers.parallel())
             .subscribe(tempAndAirHumiditySensor -> {

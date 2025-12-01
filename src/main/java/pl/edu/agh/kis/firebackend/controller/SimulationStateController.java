@@ -36,7 +36,8 @@ public class SimulationStateController {
     @PostMapping(value = "/run-simulation", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<SimulationStateDto> runSimulation(
             @RequestParam(required = false, defaultValue = "5") long interval,
-            @RequestBody Configuration configuration) {
+            @RequestBody Configuration configuration) 
+    {
         log.info("Received run-simulation request with interval={}", interval);
         log.info("Configuration: {}", configuration);
         //poniewaz tutaj jest uruchamiana symulacja, pasuje tez ja zatrzymac, wiec trzeba skads wziac ten obiekt
@@ -44,16 +45,18 @@ public class SimulationStateController {
     }
 
     @PostMapping("/send-simulation-request")
-    public ResponseEntity<String> sendSimulationRequest(@RequestBody Configuration configuration) {
+    public ResponseEntity<String> sendSimulationRequest(@RequestBody Configuration configuration) 
+    {
         log.info("Sending HTTP request to start simulation...");
         httpRequestService.sendPostRequest("http://fire-simulation:" + simulatorPort + "/run_simulation", configuration);
         return ResponseEntity.ok("Configuration send to simulation!");  
     }
+    
     @PostMapping("/stop-simulation")
-    public ResponseEntity<String> sendStopRequest() {
+    public ResponseEntity<String> sendStopRequest() 
+    {
         log.info("Sending HTTP request to stop simulation...");
         httpRequestService.sendPostRequest("http://fire-simulation:" + simulatorPort + "/stop_simulation","");
         return ResponseEntity.ok("Stop request sent!");
     }
-
 }

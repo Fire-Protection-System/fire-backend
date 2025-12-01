@@ -27,7 +27,8 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 
 @Configuration
-public class RabbitMQConfiguration {
+public class RabbitMQConfiguration 
+{
     @Value("${RABBITMQ_HOST}")
     private String rabbitMQHost;
 
@@ -41,43 +42,51 @@ public class RabbitMQConfiguration {
     private int rabbitMQPort;
 
     @Bean
-    public ConnectionFactory connectionFactory() {
+    public ConnectionFactory connectionFactory() 
+    {
         ConnectionFactory connectionFactory = new ConnectionFactory();
+
         connectionFactory.setHost(rabbitMQHost);
         connectionFactory.setUsername(username);
         connectionFactory.setPassword(password);
         connectionFactory.setPort(rabbitMQPort);  // Standard AMQP port
+
         return connectionFactory;
     }
 
     @Bean
-    public Mono<Connection> connectionMono(ConnectionFactory connectionFactory) {
+    public Mono<Connection> connectionMono(ConnectionFactory connectionFactory) 
+    {
         return Mono.fromCallable(() -> connectionFactory.newConnection("fire-backend-connection"))
             .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
-            .maxBackoff(Duration.ofSeconds(10)))
+                .maxBackoff(Duration.ofSeconds(10)))
             .cache();
-    }
+    } 
 
     @Bean
-    public SenderOptions senderOptions(Mono<Connection> connectionMono) {
+    public SenderOptions senderOptions(Mono<Connection> connectionMono) 
+    {
         return new SenderOptions()
             .connectionMono(connectionMono)
             .resourceManagementScheduler(Schedulers.boundedElastic());
     }
 
     @Bean
-    public Sender sender(SenderOptions senderOptions) {
+    public Sender sender(SenderOptions senderOptions) 
+    {
         return RabbitFlux.createSender(senderOptions);
     }
 
     @Bean
-    public ReceiverOptions receiverOptions(Mono<Connection> connectionMono) {
+    public ReceiverOptions receiverOptions(Mono<Connection> connectionMono) 
+    {
         return new ReceiverOptions()
             .connectionMono(connectionMono);
     }
 
     @Bean
-    public Receiver receiver(ReceiverOptions receiverOptions) {
+    public Receiver receiver(ReceiverOptions receiverOptions) 
+    {
         return RabbitFlux.createReceiver(receiverOptions);
     }
 }

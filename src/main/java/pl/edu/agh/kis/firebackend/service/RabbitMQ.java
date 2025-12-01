@@ -6,15 +6,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RabbitMQ {
+public class RabbitMQ 
+{
     private RabbitTemplate template;
 
     @Autowired
-    public RabbitMQ(RabbitTemplate template) {
+    public RabbitMQ(RabbitTemplate template) 
+    {
         this.template = template;
     }
 
-    public void send(byte[] body) {
+    public void send(byte[] body) 
+    {
         this.template.send(new Message(body));
     }
 }
