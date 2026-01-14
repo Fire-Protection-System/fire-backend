@@ -9,6 +9,7 @@ public record EvForestPatrol(
     int foresterPatrolId,
     ForesterPatrolState state,
     Date timestamp,
-    Location location
+    Location location,
+    Integer sectorId
 ) { }
 

@@ -3,7 +3,6 @@ package pl.edu.agh.kis.firebackend.model.simulation;
 import lombok.AllArgsConstructor;
 import pl.edu.agh.kis.firebackend.model.configuration.Configuration;
 
-import pl.edu.agh.kis.firebackend.model.events.EvRecommendation;
 import pl.edu.agh.kis.firebackend.model.events.RecommendedAction;
 
 import java.util.*;
@@ -13,14 +12,17 @@ import java.util.stream.Collectors;
 public class SimulationState {
     public String forestName;
     public Date timestamp;
+    public long tick;
     public Map<Integer, Sector> sectors;
     public Map<Integer, FireBrigade> fireBrigades;
     public Map<Integer, ForesterPatrol> foresterPatrols;
-    public Map<Integer, RecommendedAction> recommendedActions; 
+    // Keyed by composite key "unitType:unitId" to avoid ID clashes between unit types
+    public Map<String, RecommendedAction> recommendedActions; 
 
     public SimulationState() {
         this.forestName = "";
         this.timestamp = new Date();
+        this.tick = 0L;
         this.sectors = new HashMap<>();
         this.fireBrigades = new HashMap<>();
         this.foresterPatrols = new HashMap<>();
@@ -44,11 +46,12 @@ public class SimulationState {
                 .stream()
                 .collect(Collectors.toMap(foresterPatrol -> foresterPatrol.foresterPatrolId(), ForesterPatrol::from));
         
-        Map<Integer, RecommendedAction> recommendedActions = new HashMap<>(); 
+        Map<String, RecommendedAction> recommendedActions = new HashMap<>(); 
         
         return new SimulationState(
                 configuration.forestName(),
                 new Date(),
+                0L,
                 sectors,
                 fireBrigades,
                 foresterPatrols,

@@ -7,15 +7,46 @@ import pl.edu.agh.kis.firebackend.model.simulation.Sector;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class SectorIdResolver 
 {
+    private static final Logger log = LoggerFactory.getLogger(SectorIdResolver.class);
+
     public static Optional<Integer> resolveSectorId(List<Sector> sectors, Location location)
     {
-        return sectors
+        Optional<Sector> direct = sectors
             .stream()
             .filter(sector -> locationInBounds(calculateBounds(sector), location))
-            .findFirst()
-            .map(sector -> sector.sectorId);
+            .findFirst();
+
+        if (direct.isPresent()) {
+            return Optional.of(direct.get().sectorId);
+        }
+
+        double minDist = Double.POSITIVE_INFINITY;
+        Sector nearest = null;
+        for (Sector sector : sectors) {
+            Bounds b = calculateBounds(sector);
+            double centerLon = (b.east + b.west) / 2.0;
+            double centerLat = (b.south + b.north) / 2.0;
+            double dLon = centerLon - location.longitude();
+            double dLat = centerLat - location.latitude();
+            double dist = Math.sqrt(dLon * dLon + dLat * dLat);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = sector;
+            }
+        }
+
+        if (nearest != null) {
+            log.debug("Location {} not within any sector bounds; falling back to nearest sector {} (dist={})", location, nearest.sectorId, minDist);
+            return Optional.of(nearest.sectorId);
+        }
+
+        log.debug("Location {} not found in any sector and no sectors available", location);
+        return Optional.empty();
     }
 
     @AllArgsConstructor
@@ -69,10 +100,11 @@ public class SectorIdResolver
     {
         double lon = location.longitude();
         double lat = location.latitude();
+        final double EPS = 1e-7; // tolerate tiny precision errors
 
         return 
-            (bounds.east < lon && lon < bounds.west) &&
-            (bounds.south < lat && lat < bounds.north);
+            (bounds.east - EPS <= lon && lon <= bounds.west + EPS) &&
+            (bounds.south - EPS <= lat && lat <= bounds.north + EPS);
     }
 
 }

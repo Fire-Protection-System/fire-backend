@@ -9,5 +9,6 @@ public record EvFireBrigade(
     int fireBrigadeId,
     FireBrigadeState state,
     Date timestamp,
-    Location location
+    Location location,
+    Integer sectorId
 ) { }

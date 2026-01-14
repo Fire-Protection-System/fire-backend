@@ -27,7 +27,7 @@ public record ForesterPatrol(
     public static ForesterPatrol from(EvForestPatrol evForestPatrol) {
         return new ForesterPatrol(
                 evForestPatrol.foresterPatrolId(),
-                0,
+                evForestPatrol.sectorId() != null ? evForestPatrol.sectorId() : 0,
                 evForestPatrol.location(),
                 evForestPatrol.state(),
                 ForesterPatrolAction.PATROL

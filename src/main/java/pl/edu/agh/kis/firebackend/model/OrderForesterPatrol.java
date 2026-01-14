@@ -5,7 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import pl.edu.agh.kis.firebackend.model.primitives.Location;
 
-public class OrderForesterPatrol {
+public class OrderForesterPatrol 
+{
     @JsonProperty
     private int foresterPatrolId;
     @JsonProperty
@@ -15,7 +16,8 @@ public class OrderForesterPatrol {
     @JsonProperty
     private Location location;
 
-    public OrderForesterPatrol(int foresterPatrolId, ForesterPatrolAction action, Date timestamp, Location location) {
+    public OrderForesterPatrol(int foresterPatrolId, ForesterPatrolAction action, Date timestamp, Location location) 
+    {
         this.foresterPatrolId = foresterPatrolId;
         this.action = action;
         this.timestamp = timestamp;
@@ -26,7 +28,7 @@ public class OrderForesterPatrol {
         this(foresterPatrolId, action, timestamp, null);
     }
 
-    public int fireBrigadeId() {
+    public int foresterPatrolId() {
         return foresterPatrolId;
     }
 
@@ -59,7 +61,8 @@ public class OrderForesterPatrol {
     }
 
     @Override
-    public String toString() {
+    public String toString() 
+    {
         return "OrderForesterPatrol{" +
                 "foresterPatrolId=" + foresterPatrolId +
                 ", action=" + action +

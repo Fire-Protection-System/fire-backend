@@ -5,9 +5,11 @@ import org.springframework.context.annotation.Configuration;
 import pl.edu.agh.kis.firebackend.model.simulation.SimulationState;
 
 @Configuration
-public class SimulationStateConfiguration {
+public class SimulationStateConfiguration 
+{
     @Bean
-    public SimulationState initialState() {
+    public SimulationState initialState() 
+    {
         return new SimulationState();
     }
 }

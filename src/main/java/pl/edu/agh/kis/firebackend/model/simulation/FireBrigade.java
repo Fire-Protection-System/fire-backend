@@ -13,7 +13,8 @@ public record FireBrigade(
     FireBrigadeState state,
     FireBrigadeAction action
 ) {
-    public static FireBrigade from(ConfFireBrigade confFireBrigade) {
+    public static FireBrigade from(ConfFireBrigade confFireBrigade) 
+    {
         return new FireBrigade(
                 confFireBrigade.fireBrigadeId(),
                 0,
@@ -23,10 +24,11 @@ public record FireBrigade(
         );
     }
 
-    public static FireBrigade from(EvFireBrigade evFireBrigade) {
+    public static FireBrigade from(EvFireBrigade evFireBrigade) 
+    {
         return new FireBrigade(
                 evFireBrigade.fireBrigadeId(),
-                0,
+                evFireBrigade.sectorId() != null ? evFireBrigade.sectorId() : 0,
                 evFireBrigade.location(),
                 evFireBrigade.state(),
                 FireBrigadeAction.EXTINGUISH

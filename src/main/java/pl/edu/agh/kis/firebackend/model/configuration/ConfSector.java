@@ -10,6 +10,7 @@ public record ConfSector(
     int column,
     SectorState initialState,
     SectorType sectorType,
-    List<List<Double>> contours
+    List<List<Double>> contours,
+    List<Integer> assignedBrigades
 ) {
 }

@@ -1,25 +1,27 @@
 package pl.edu.agh.kis.firebackend.model.frontend;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import pl.edu.agh.kis.firebackend.model.primitives.Location;
 
 public class FrontOrderPatrol extends FrontOrder {
 
-    private int forestPatrolId;
+    @JsonProperty("foresterPatrolId")
+    private int foresterPatrolId;
 
-    public FrontOrderPatrol(int forestPatrolId, Location location, boolean isGoToBase){
+    public FrontOrderPatrol(int foresterPatrolId, Location location, boolean isGoToBase){
         super(location, isGoToBase);
-        this.forestPatrolId = forestPatrolId;
+        this.foresterPatrolId = foresterPatrolId;
     }
 
 
     public int getId(){
-        return forestPatrolId;
+        return foresterPatrolId;
     }
 
     @Override
     public String toString() {
         return "FrontOrderPatrol{" +
-                "forestPatrolId=" + forestPatrolId +
+                "foresterPatrolId=" + foresterPatrolId +
                 ", location=" + getLocation() +
                 ", isGoToBase=" + isGoToBase() +
                 '}';

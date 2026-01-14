@@ -44,3 +44,10 @@ secrets.yml
 .sts4-cache
 .git-hooks/
 node_modules
+
+.pytest_cache/
+.mvn
+logs/application.log
+.env 
+mvnw 
+mvnw.cmd 

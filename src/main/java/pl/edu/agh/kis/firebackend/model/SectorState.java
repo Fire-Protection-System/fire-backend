@@ -6,7 +6,8 @@ import pl.edu.agh.kis.firebackend.model.primitives.Direction;
 import java.util.Date;
 
 @AllArgsConstructor
-public class SectorState {
+public class SectorState 
+{
     public Date timestamp;
     public double temperature;
     public double windSpeed;

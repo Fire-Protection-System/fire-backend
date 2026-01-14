@@ -10,18 +10,20 @@ import java.util.List;
 public record SimulationStateDto (
     String forestName,
     Date timestamp,
+    long tick,
     List<Sector> sectors,
     List<FireBrigade> fireBrigades,
-    List<ForesterPatrol> foresterPatrols, 
+    List<ForesterPatrol> foresterPatrols,
     List<RecommendedAction> recommendedActions
 ){
     public static SimulationStateDto from(SimulationState state) {
         return new SimulationStateDto(
                 state.forestName,
                 state.timestamp,
+                state.tick,
                 new ArrayList<>(state.sectors.values()),
                 new ArrayList<>(state.fireBrigades.values()),
-                new ArrayList<>(state.foresterPatrols.values()), 
+                new ArrayList<>(state.foresterPatrols.values()),
                 new ArrayList<>(state.recommendedActions.values())
         );
     }

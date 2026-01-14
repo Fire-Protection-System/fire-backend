@@ -10,13 +10,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Delivery;
 
 import lombok.AllArgsConstructor;
+import pl.edu.agh.kis.firebackend.configuration.RoutingKeys;
 import pl.edu.agh.kis.firebackend.model.UpdatesQueue;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.rabbitmq.BindingSpecification;
+import reactor.rabbitmq.ExchangeSpecification;
 import reactor.rabbitmq.OutboundMessage;
 import reactor.rabbitmq.QueueSpecification;
 import reactor.rabbitmq.Receiver;
-import reactor.rabbitmq.SendOptions;
 import reactor.rabbitmq.Sender;
 
 @Service
@@ -26,34 +28,51 @@ public class StateUpdatesService
     private Sender sender;
     private Receiver receiver;
     private ObjectMapper mapper;
+    private String exchangeName;
 
     private static final Logger log = LoggerFactory.getLogger(StateUpdatesService.class);
 
     public <T> Flux<T> createUpdatesFlux(UpdatesQueue<T> queue)
     {
-        return sender.declareQueue(QueueSpecification.queue(queue.name()))
-            .doOnError(e -> 
-            {
-                log.error("Failed to declare queue: {}", e.toString());
+        log.debug("Creating Flux for queue: {} (class: {})", queue.name(), queue.eventClass().getSimpleName());
+        
+        String routingKey = RoutingKeys.getRoutingKey(queue.name());
+        log.debug("Queue {} mapped to routing key: {}", queue.name(), routingKey);
+        
+        // Declare exchange first (topic type)
+        // Declare queue with durable=false to match simulator's queue creation
+        // Bind queue to exchange with routing key
+        return sender.declareExchange(ExchangeSpecification.exchange(exchangeName).type("topic").durable(false))
+            .doOnSuccess(ok -> log.debug("Exchange declared/verified: {}", exchangeName))
+            .then(sender.declare(QueueSpecification.queue(queue.name()).durable(false)))
+            .doOnSuccess(ok -> log.debug("Queue declared/verified: {}", queue.name()))
+            .doOnError(e -> log.error("Failed to declare queue {}: {}", queue.name(), e.toString()))
+            .then(sender.bind(BindingSpecification.binding()
+                .exchange(exchangeName)
+                .queue(queue.name())
+                .routingKey(routingKey)))
+            .doOnSuccess(ok -> log.info("Queue {} bound to exchange {} with routing key {}", queue.name(), exchangeName, routingKey))
+            .doOnError(e -> log.error("Failed to bind queue {} to exchange {} with routing key {}: {}", 
+                queue.name(), exchangeName, routingKey, e.toString()))
+            .thenMany(receiver.consumeAutoAck(queue.name()))
+            .doOnSubscribe(sub -> {
+                log.debug("Subscribed to queue: {}", queue.name());
             })
-            .thenMany(
-                receiver.consumeAutoAck(queue.name())
-                    .mapNotNull(message -> 
-                    {
-                        try
-                        {
-                            return parseMessage(message, queue.eventClass());
-                        }
-                        catch (IOException e)
-                        {
-                            log.error("Failed to parse RMQ message: {}", e.toString());
-                            return null;
-                        }
-                    })
-            )
+            .mapNotNull(message -> 
+            {
+                try
+                {
+                    return parseMessage(message, queue.eventClass());
+                }
+                catch (IOException e)
+                {
+                    log.error("Failed to parse RMQ message from queue {}: {}", queue.name(), e.toString());
+                    return null;
+                }
+            })
             .onErrorResume(e -> 
             {
-                log.error("Error during message consumption: {}", e.toString());
+                log.error("Error during message consumption from queue {}: {}", queue.name(), e.toString());
                 return Flux.empty();
             });
     }
@@ -66,30 +85,41 @@ public class StateUpdatesService
 
     public <T> Mono<Void> sendMessageToQueue(String queueName, T message) 
     {
-        System.out.println("sendMessageToQueue");
-        System.out.println(queueName);
+        String routingKey = RoutingKeys.getRoutingKey(queueName);
+        log.debug("Sending message to queue: {} with routing key: {}", queueName, routingKey);
 
         try 
         {
             byte[] messageBytes = mapper.writeValueAsBytes(message);
-            OutboundMessage outboundMessage = new OutboundMessage("", queueName, messageBytes);
+            // Use exchange and routing key instead of direct queue
+            OutboundMessage outboundMessage = new OutboundMessage(exchangeName, routingKey, messageBytes);
 
-            return sender.send(Mono.just(outboundMessage))
+            // Declare exchange first (topic type)
+            // Declare queue before sending to ensure it exists (durable=false to match simulator)
+            // Bind queue to exchange with routing key
+            return sender.declareExchange(ExchangeSpecification.exchange(exchangeName).type("topic").durable(false))
+                .doOnSuccess(ok -> log.debug("Exchange declared/verified for send: {}", exchangeName))
+                .then(sender.declare(QueueSpecification.queue(queueName).durable(false)))
+                .doOnSuccess(ok -> log.debug("Queue declared/verified for send: {}", queueName))
+                .then(sender.bind(BindingSpecification.binding()
+                    .exchange(exchangeName)
+                    .queue(queueName)
+                    .routingKey(routingKey)))
+                .doOnSuccess(ok -> log.debug("Queue {} bound to exchange {} with routing key {} for send", 
+                    queueName, exchangeName, routingKey))
+                .then(sender.send(Mono.just(outboundMessage)))
                 .doOnSubscribe(subscription -> 
                 {
-                    log.info("Subscribed to sendMessageToQueue");
-                })
-                .doOnNext(sentMessage -> 
-                {
-                    log.info("Message sent to broker: {}", sentMessage);
+                    log.debug("Sending message to exchange {} with routing key {}", exchangeName, routingKey);
                 })
                 .doOnError(e -> 
                 {
-                    log.error("Error in sender.send: {}", e);
+                    log.error("Error sending message to exchange {} with routing key {}: {}", 
+                        exchangeName, routingKey, e.toString());
                 })
                 .doFinally(signalType -> 
                 {
-                    log.info("Sender.send finalized with signal: {}", signalType);
+                    log.debug("Message send finalized with signal: {}", signalType);
                 });
         } 
         catch (IOException e) 
