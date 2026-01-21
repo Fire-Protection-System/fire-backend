@@ -8,7 +8,6 @@ import pl.edu.agh.kis.firebackend.model.events.RecommendedAction;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@AllArgsConstructor
 public class SimulationState {
     public String forestName;
     public Date timestamp;
@@ -18,6 +17,16 @@ public class SimulationState {
     public Map<Integer, ForesterPatrol> foresterPatrols;
     // Keyed by composite key "unitType:unitId" to avoid ID clashes between unit types
     public Map<String, RecommendedAction> recommendedActions; 
+
+    public SimulationState(String forestName, Date timestamp, long tick, Map<Integer, Sector> sectors, Map<Integer, FireBrigade> fireBrigades, Map<Integer, ForesterPatrol> foresterPatrols, Map<String, RecommendedAction> recommendedActions) {
+        this.forestName = forestName;
+        this.timestamp = timestamp;
+        this.tick = tick;
+        this.sectors = sectors;
+        this.fireBrigades = fireBrigades;
+        this.foresterPatrols = foresterPatrols;
+        this.recommendedActions = recommendedActions;
+    }
 
     public SimulationState() {
         this.forestName = "";

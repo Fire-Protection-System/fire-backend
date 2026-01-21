@@ -22,7 +22,7 @@ public class CompatibilityController
     private static final Logger log = LoggerFactory.getLogger(CompatibilityController.class);
     private final HttpRequestService httpRequestService;
 
-    @Value("${FIRE_SIMULATION_SERVICE:127.0.0.1}")
+    @Value("${FIRE_SIMULATION_SERVICE:fire-simulation-service}")
     private String simulationHost;
 
     @Value("${SIMULATOR_PORT:5000}")

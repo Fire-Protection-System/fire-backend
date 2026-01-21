@@ -19,6 +19,10 @@ ARG APP_VERSION=dev
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 WORKDIR /app
 
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends curl \
+	&& rm -rf /var/lib/apt/lists/*
+
 RUN groupadd -g 1000 appuser || true \
 	&& useradd -u 1000 -g appuser -m -s /usr/sbin/nologin appuser || true
 

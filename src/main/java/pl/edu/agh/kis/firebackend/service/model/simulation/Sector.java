@@ -7,13 +7,19 @@ import pl.edu.agh.kis.firebackend.model.configuration.ConfSector;
 import java.util.List;
 import java.util.ArrayList;
 
-@AllArgsConstructor
 public class Sector 
 {
     public int sectorId;
     public SectorState state;
     public List<List<Double>> contours;
     public List<Integer> assignedBrigades;
+
+    public Sector(int sectorId, SectorState state, List<List<Double>> contours, List<Integer> assignedBrigades) {
+        this.sectorId = sectorId;
+        this.state = state;
+        this.contours = contours;
+        this.assignedBrigades = assignedBrigades;
+    }
 
     public static Sector from(ConfSector confSector) 
     {

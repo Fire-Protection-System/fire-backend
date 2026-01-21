@@ -6,13 +6,8 @@ import java.util.Date;
 
 public record EvCamera(
     int cameraId,
+    String sourceUrl,
     Date timestamp,
     Location location,
-    Data data
-) {
-    public static record Data(
-        boolean smokeDetected,
-        int smokeLevel,
-        Location smokeLocation
-    ) {}
-}
+    Integer sectorId
+) { }

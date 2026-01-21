@@ -25,6 +25,7 @@ public class FrontOrderFire extends FrontOrder
                     "fireBrigadeId=" + fireBrigadeId +
                     ", location=" + getLocation() +
                     ", isGoToBase=" + isGoToBase() +
+                    ", source=" + getSource() +
                     '}';
         }
 }

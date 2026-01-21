@@ -1,9 +1,6 @@
 package pl.edu.agh.kis.firebackend.model.events;
 
-import java.util.Date;
-import java.util.List; 
-
-import pl.edu.agh.kis.firebackend.model.events.RecommendedAction;
+import java.util.List;
 
 public record EvRecommendation(
     float timestamp,

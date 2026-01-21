@@ -49,13 +49,19 @@ public class SectorIdResolver
         return Optional.empty();
     }
 
-    @AllArgsConstructor
     private static class Bounds 
     {
         public double east;
         public double north;
         public double south;
         public double west;
+
+        public Bounds(double east, double north, double south, double west) {
+            this.east = east;
+            this.north = north;
+            this.south = south;
+            this.west = west;
+        }
     }
 
     private static Bounds calculateBounds(Sector sector) 

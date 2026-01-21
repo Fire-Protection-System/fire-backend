@@ -15,8 +15,11 @@ public class RoutingKeys {
     static {        
         // Simulation 
         map(QueueNames.SIMULATION_TELEMETRY_AGENTS_FIRE_BRIGADE,     "simulation.telemetry.agents.fire_brigade");
+        map(QueueNames.SIMULATION_TELEMETRY_AGENTS_FIRE_BRIGADE_BATCH, "simulation.telemetry.agents.fire_brigade_batch");
         map(QueueNames.SIMULATION_TELEMETRY_AGENTS_FORESTER,         "simulation.telemetry.agents.forester");
+        map(QueueNames.SIMULATION_TELEMETRY_AGENTS_FORESTER_BATCH,   "simulation.telemetry.agents.forester_batch");
         map(QueueNames.SIMULATION_TELEMETRY_MAP_SECTOR_STATE,        "simulation.telemetry.map.sector_state");
+        map(QueueNames.SIMULATION_TELEMETRY_MAP_SECTOR_STATE_FAST,   "simulation.telemetry.map.sector_state_fast");
         map(QueueNames.SIMULATION_TELEMETRY_SENSORS_TEMP_HUMIDITY,   "simulation.telemetry.sensors.temp_humidity");
         map(QueueNames.SIMULATION_TELEMETRY_SENSORS_WIND_SPEED,      "simulation.telemetry.sensors.wind_speed");
         map(QueueNames.SIMULATION_TELEMETRY_SENSORS_WIND_DIRECTION,  "simulation.telemetry.sensors.wind_direction");
@@ -28,10 +31,14 @@ public class RoutingKeys {
         // Support System
         map(QueueNames.SUPPORT_ANALYSIS_REQUESTS,  "support.analysis.requests");
         map(QueueNames.SUPPORT_RECOMMENDATIONS,    "support.recommendations");
-        map(QueueNames.SUPPORT_AGGREGATED_DATA,    "support.aggregated.data");
+        map(QueueNames.SUPPORT_AGGREGATED_DATA,    "support.data.aggregated");
         
         // Simulation Recommendations
         map(QueueNames.SIMULATION_RECOMMENDATIONS, "simulation.recommendations");
+        map(QueueNames.BACKEND_LLM_REQUESTS,       "support.llm.requests");
+        map(QueueNames.BACKEND_LLM_RESPONSES,      "support.llm.responses");
+        map(QueueNames.SUPPORT_LLM_PROPOSITIONS,   "support.llm.propositions");
+        map(QueueNames.SUPPORT_LLM_PROPOSITIONS_RESPONSES, "support.llm.propositions.responses");
         map(QueueNames.SUPPORT_LLM_REQUESTS,       "support.llm.requests");
         map(QueueNames.SUPPORT_LLM_RESPONSES,      "support.llm.responses");
         map(QueueNames.SUPPORT_ANALYTICS_INSIGHTS, "support.analytics.insights");

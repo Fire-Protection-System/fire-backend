@@ -30,15 +30,21 @@ public class OrdersController
     @Value("${SIMULATOR_PORT:5000}")
     private int simulatorPort;
 
+    // Whether to accept orders coming from automated workflows (frontend auto-apply)
+    @Value("${SIMULATION_ALLOW_AUTO_ORDERS:false}")
+    private boolean allowAutoOrders;
+
     @PostMapping("/orderFireBrigade")
     public ResponseEntity<String> sentOrderBrigade(@RequestBody FrontOrderFire order){        
         log.info(String.format("Order received: %s", order.toString()));
+        String src = order.getSource() == null ? "unknown" : order.getSource();
+
         if (order.getLocation() != null) {
-            log.info("[Backend] [SECTOR-DEPENDENCIES] Fire brigade order received: fireBrigadeId={}, location=({}, {}), isGoToBase={}", 
-                order.getId(), order.getLocation().longitude(), order.getLocation().latitude(), order.isGoToBase());
+            log.info("[Backend] [SECTOR-DEPENDENCIES] Fire brigade order received: fireBrigadeId={}, location=({}, {}), isGoToBase={}, source={}", 
+                order.getId(), order.getLocation().longitude(), order.getLocation().latitude(), order.isGoToBase(), src);
         } else {
-            log.info("[Backend] [SECTOR-DEPENDENCIES] Fire brigade order received: fireBrigadeId={}, location=null, isGoToBase={}", 
-                order.getId(), order.isGoToBase());
+            log.info("[Backend] [SECTOR-DEPENDENCIES] Fire brigade order received: fireBrigadeId={}, location=null, isGoToBase={}, source={}", 
+                order.getId(), order.isGoToBase(), src);
         }
         ordersService.processOrder(order);
         return ResponseEntity.ok("Order received!");        
@@ -47,6 +53,8 @@ public class OrdersController
     @PostMapping("/orderForestPatrol")
     public ResponseEntity<String> sentOrderPatrol(@RequestBody FrontOrderPatrol order){
         log.info(String.format("Order received: %s", order.toString()));        
+        String src = order.getSource() == null ? "unknown" : order.getSource();
+        log.info("[Backend] Forester patrol order received: foresterPatrolId={}, isGoToBase={}, source={}", order.getId(), order.isGoToBase(), src);
         ordersService.processOrder(order);
         return ResponseEntity.ok("Order received!");
     }

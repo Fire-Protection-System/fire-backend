@@ -6,8 +6,8 @@ import java.util.Date;
 
 public record EvPM25ConcentrationSensor(
     int sensorId,
+    PM25ConcentrationSensorData data,
     Date timestamp,
-    SensorType sensorType,
     Location location,
-    PM25ConcentrationSensorData data
-) implements EvSensor<PM25ConcentrationSensorData> { }
+    Integer sectorId
+) { }

@@ -6,8 +6,8 @@ import java.util.Date;
 
 public record EvCO2Sensor(
     int sensorId,
+    CO2SensorData data,
     Date timestamp,
-    SensorType sensorType,
     Location location,
-    CO2SensorData data
-) implements EvSensor<CO2SensorData> { }
+    Integer sectorId
+) { }

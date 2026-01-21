@@ -6,8 +6,8 @@ import java.util.Date;
 
 public record EvWindSpeedSensor(
     int sensorId,
+    WindSpeedData data,
     Date timestamp,
-    SensorType sensorType,
     Location location,
-    WindSpeedData data
-) implements EvSensor<WindSpeedData> {}
+    Integer sectorId
+) { }

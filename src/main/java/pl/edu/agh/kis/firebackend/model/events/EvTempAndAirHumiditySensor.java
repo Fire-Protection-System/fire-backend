@@ -6,8 +6,8 @@ import java.util.Date;
 
 public record EvTempAndAirHumiditySensor(
     int sensorId,
+    TempAndAirHumidityData data,
     Date timestamp,
-    SensorType sensorType,
     Location location,
-    TempAndAirHumidityData data
-) implements EvSensor<TempAndAirHumidityData> { }
+    Integer sectorId
+) { }

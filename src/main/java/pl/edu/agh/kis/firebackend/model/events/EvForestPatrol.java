@@ -12,4 +12,3 @@ public record EvForestPatrol(
     Location location,
     Integer sectorId
 ) { }
-

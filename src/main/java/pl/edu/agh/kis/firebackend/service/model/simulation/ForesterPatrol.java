@@ -14,6 +14,16 @@ public record ForesterPatrol(
     ForesterPatrolAction action
 ) {
 
+    public ForesterPatrol withoutLocation() {
+        return new ForesterPatrol(
+            this.foresterPatrolId(),
+            this.sectorId(),
+            null,
+            this.state(),
+            this.action()
+        );
+    }
+
     public static ForesterPatrol from(ConfForesterPatrol confForesterPatrol) {
         return new ForesterPatrol(
                 confForesterPatrol.foresterPatrolId(),

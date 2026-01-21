@@ -14,13 +14,20 @@ public class HttpRequestService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @SuppressWarnings("null")
     public String sendPostRequest(String url, Object requestPayload) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Object> requestEntity = new HttpEntity<>(requestPayload, headers);
 
         ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
-        return response.getBody();
+        return java.util.Objects.requireNonNullElse(response.getBody(), "");
+    }
+
+    @SuppressWarnings("null")
+    public String sendGetRequest(String url) {
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        return java.util.Objects.requireNonNullElse(response.getBody(), "");
     }
 }
 

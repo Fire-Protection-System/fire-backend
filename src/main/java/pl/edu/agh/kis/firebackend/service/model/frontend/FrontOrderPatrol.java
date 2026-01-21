@@ -24,6 +24,7 @@ public class FrontOrderPatrol extends FrontOrder {
                 "foresterPatrolId=" + foresterPatrolId +
                 ", location=" + getLocation() +
                 ", isGoToBase=" + isGoToBase() +
+                ", source=" + getSource() +
                 '}';
     }
     

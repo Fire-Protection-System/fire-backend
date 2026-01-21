@@ -13,6 +13,19 @@ public record FireBrigade(
     FireBrigadeState state,
     FireBrigadeAction action
 ) {
+
+    /**
+     * Zwraca kopię obiektu bez pola location (do wysyłki w pełnym stanie)
+     */
+    public FireBrigade withoutLocation() {
+        return new FireBrigade(
+            this.fireBrigadeId(),
+            this.sectorId(),
+            null, // location usuwamy
+            this.state(),
+            this.action()
+        );
+    }
     public static FireBrigade from(ConfFireBrigade confFireBrigade) 
     {
         return new FireBrigade(

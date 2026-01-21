@@ -11,11 +11,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import pl.edu.agh.kis.firebackend.model.configuration.Configuration;
-import pl.edu.agh.kis.firebackend.model.simulation.SimulationStateDto;
+import pl.edu.agh.kis.firebackend.model.events.EvLlmChat;
 import pl.edu.agh.kis.firebackend.service.HttpRequestService;
 import pl.edu.agh.kis.firebackend.service.SimulationStateService;
 import pl.edu.agh.kis.firebackend.service.StateUpdatesService;
 import pl.edu.agh.kis.firebackend.configuration.QueueNames;
+import org.springframework.context.ApplicationContext;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
@@ -29,6 +30,8 @@ public class SimulationStateController
     private final SimulationStateService simulationStateService;
     private final HttpRequestService httpRequestService;
     private final StateUpdatesService stateUpdatesService;
+    private final ApplicationContext applicationContext;
+    
     private static final Logger log = LoggerFactory.getLogger(SimulationStateController.class);
 
     @Value("${FIRE_SIMULATION_SERVICE:127.0.0.1}")
@@ -37,14 +40,63 @@ public class SimulationStateController
     @Value("${SIMULATOR_PORT:5000}")
     private int simulatorPort;
 
+    @Value("${FIRE_SUPPORT_SERVICE:127.0.0.1}")
+    private String supportHost;
+
+    @Value("${SUPPORT_PORT:5001}")
+    private int supportPort;
+
     @PostMapping(value = "/run-simulation", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<SimulationStateDto> runSimulation(
+    public Flux<Object> runSimulation(
         @RequestParam(required = false) Long interval,
+        @RequestParam(name = "llmMode", required = false, defaultValue = "false") boolean llmMode,
         @RequestBody Configuration configuration)
     {
-        long effectiveInterval = (interval != null && interval > 0) ? interval : 5L;
-        
-        return simulationStateService.runSimulation(configuration, Duration.ofSeconds(effectiveInterval));
+        // 0.25 updates per second (4000ms) for even better performance
+        long effectiveIntervalMs = (interval != null && interval > 0) ? Math.max(interval, 2000L) : 2000L;
+
+        try {
+            String supportUrl = String.format("http://%s:%d/start", supportHost, supportPort);
+
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("config", configuration);
+
+            if (llmMode) {
+                java.util.Map<String, Object> llmConfig = new java.util.HashMap<>();
+                // Pure LLM-driven recommendations (no MCTS)
+                llmConfig.put("recommendation_mode", "llm");
+                // Decisions po stronie agentów domyślnie heurystyczne – centralny LLM w support
+                llmConfig.put("agent_decision_mode", "heuristic");
+                // Włącz koordynację LLM i komunikację agentów w support
+                llmConfig.put("enable_llm_coordination", true);
+                llmConfig.put("enable_agent_communication", true);
+                payload.put("llm_config", llmConfig);
+
+                log.info("Starting support service in LLM-DRIVEN mode (recommendation_mode=llm)");
+            } else {
+                log.info("Starting support service in default mode (LLM configuration from env/.env)");
+            }
+
+            httpRequestService.sendPostRequest(supportUrl, payload);
+        } catch (Exception e) {
+            log.warn("Failed to start support service at {}:{} - continuing without support", supportHost, supportPort, e);
+        }
+
+        return simulationStateService.runSimulation(configuration, Duration.ofMillis(effectiveIntervalMs));
+    }
+
+    @GetMapping(
+        value = "/llm-chat",
+        produces = MediaType.TEXT_EVENT_STREAM_VALUE
+    )
+    public Flux<EvLlmChat> streamLlmChat() {
+        log.info("Frontend connected to LLM chat stream");
+        @SuppressWarnings("unchecked")
+        Flux<EvLlmChat> llmChatSink = applicationContext.getBean("llmChatSink", Flux.class);
+        return llmChatSink
+            .doOnSubscribe(s -> log.debug("LLM chat stream subscribed"))
+            .doOnTerminate(() -> log.debug("LLM chat stream terminated"))
+            .timeout(Duration.ofMinutes(30));
     }
 
     @PostMapping("/send-simulation-request")
@@ -56,6 +108,18 @@ public class SimulationStateController
             return ResponseEntity.ok("Configuration sent to simulation!");
         } catch (Exception e) {
             log.error("Failed to send run_simulation request to simulation at {}:{}", simulationHost, simulatorPort, e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Simulation service unreachable");
+        }
+    }
+
+    @GetMapping("/snapshot")
+    public ResponseEntity<String> getSimulationSnapshot() {
+        String url = String.format("http://%s:%d/snapshot", simulationHost, simulatorPort);
+        try {
+            String body = httpRequestService.sendGetRequest(url);
+            return ResponseEntity.ok(body);
+        } catch (Exception e) {
+            log.error("Failed to fetch snapshot from simulation at {}:{}", simulationHost, simulatorPort, e);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Simulation service unreachable");
         }
     }
@@ -153,10 +217,67 @@ public class SimulationStateController
         String url = String.format("http://%s:%d/stop_simulation", simulationHost, simulatorPort);
         try {
             httpRequestService.sendPostRequest(url, "");
+            // Stop support service (best-effort)
+            try {
+                String supportUrl = String.format("http://%s:%d/stop", supportHost, supportPort);
+                httpRequestService.sendPostRequest(supportUrl, "");
+            } catch (Exception e) {
+                log.warn("Failed to stop support service at {}:{} - continuing", supportHost, supportPort);
+            }
             return ResponseEntity.ok("Stop request sent!");
         } catch (Exception e) {
             log.error("Failed to send stop_simulation request to simulation at {}:{}", simulationHost, simulatorPort, e);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Simulation service unreachable");
+        }
+    }
+
+    /**
+     * Runtime toggle for LLM-driven recommendation mode in support service.
+     *
+     * Body example:
+     * { "enabled": true }
+     *
+     * When enabled=true:
+     *  - recommendation_mode = "llm"
+     *  - agent_decision_mode = "heuristic"
+     *  - enable_llm_coordination / enable_agent_communication = true
+     *
+     * When enabled=false:
+     *  - recommendation_mode / agent_decision_mode left to defaults (env/.env)
+     *    but LLM features are explicitly disabled.
+     */
+    @PostMapping("/llm-mode")
+    public ResponseEntity<String> setLlmMode(@RequestBody java.util.Map<String, Object> body) {
+        Object enabledObj = body.get("enabled");
+        boolean enabled = Boolean.TRUE.equals(enabledObj) ||
+                (enabledObj instanceof String && "true".equalsIgnoreCase((String) enabledObj));
+
+        String supportUrl = String.format("http://%s:%d/config", supportHost, supportPort);
+
+        java.util.Map<String, Object> llmConfig = new java.util.HashMap<>();
+
+        if (enabled) {
+            llmConfig.put("recommendation_mode", "llm");
+            llmConfig.put("agent_decision_mode", "heuristic");
+            llmConfig.put("enable_llm_coordination", true);
+            llmConfig.put("enable_agent_communication", true);
+            log.info("Enabling LLM-DRIVEN mode in support service (recommendation_mode=llm)");
+        } else {
+            // Turn off all LLM-driven behaviour in support
+            llmConfig.put("recommendation_mode", "heuristic");
+            llmConfig.put("agent_decision_mode", "heuristic");
+            llmConfig.put("enable_llm_coordination", false);
+            llmConfig.put("enable_agent_communication", false);
+            log.info("Disabling LLM-DRIVEN mode in support service (fallback to heuristic)");
+        }
+
+        try {
+            httpRequestService.sendPostRequest(supportUrl, llmConfig);
+            return ResponseEntity.ok(enabled ? "LLM mode enabled" : "LLM mode disabled");
+        } catch (Exception e) {
+            log.error("Failed to update LLM mode in support service at {}:{}", supportHost, supportPort, e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("Support service unreachable");
         }
     }
 
