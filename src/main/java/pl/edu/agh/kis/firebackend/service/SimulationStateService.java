@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import pl.edu.agh.kis.firebackend.configuration.QueueNames;
-import pl.edu.agh.kis.firebackend.model.configuration.Configuration;
+import pl.edu.agh.kis.firebackend.service.model.configuration.Configuration;
 import pl.edu.agh.kis.firebackend.model.events.EvCO2Sensor;
 import pl.edu.agh.kis.firebackend.model.events.EvCamera;
 import pl.edu.agh.kis.firebackend.model.events.EvFireBrigade;
@@ -26,20 +26,20 @@ import pl.edu.agh.kis.firebackend.model.events.EvSectorState;
 import pl.edu.agh.kis.firebackend.model.events.EvLlmChat;
 import pl.edu.agh.kis.firebackend.model.events.EvFireBrigadeBatch;
 import pl.edu.agh.kis.firebackend.model.events.EvForesterPatrolBatch;
-import pl.edu.agh.kis.firebackend.model.frontend.FrontSectorUpdateFast;
+import pl.edu.agh.kis.firebackend.service.model.frontend.FrontSectorUpdateFast;
 import pl.edu.agh.kis.firebackend.model.events.RecommendedAction;
 import pl.edu.agh.kis.firebackend.model.events.EvTempAndAirHumiditySensor;
-import pl.edu.agh.kis.firebackend.model.frontend.FrontOrderFire;
-import pl.edu.agh.kis.firebackend.model.frontend.FrontOrderPatrol;
+import pl.edu.agh.kis.firebackend.service.model.frontend.FrontOrderFire;
+import pl.edu.agh.kis.firebackend.service.model.frontend.FrontOrderPatrol;
 import pl.edu.agh.kis.firebackend.model.primitives.Location;
 import pl.edu.agh.kis.firebackend.model.events.EvWindDirectionSensor;
 import pl.edu.agh.kis.firebackend.model.events.EvWindSpeedSensor;
-import pl.edu.agh.kis.firebackend.model.simulation.FireBrigade;
-import pl.edu.agh.kis.firebackend.model.simulation.ForesterPatrol;
-import pl.edu.agh.kis.firebackend.model.simulation.Sector;
-import pl.edu.agh.kis.firebackend.model.simulation.SimulationState;
-import pl.edu.agh.kis.firebackend.model.simulation.SimulationStateDto;
-import pl.edu.agh.kis.firebackend.model.SectorState;
+import pl.edu.agh.kis.firebackend.service.model.simulation.FireBrigade;
+import pl.edu.agh.kis.firebackend.service.model.simulation.ForesterPatrol;
+import pl.edu.agh.kis.firebackend.service.model.simulation.Sector;
+import pl.edu.agh.kis.firebackend.service.model.simulation.SimulationState;
+import pl.edu.agh.kis.firebackend.service.model.simulation.SimulationStateDto;
+import pl.edu.agh.kis.firebackend.service.model.SectorState;
 import pl.edu.agh.kis.firebackend.util.SectorIdResolver;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
@@ -640,16 +640,29 @@ public class SimulationStateService {
 
     private void processFireBrigade(EvFireBrigade fireBrigade) {
         Integer key = fireBrigade.fireBrigadeId();
-        if (fireBrigade.location() == null) {
-            log.warn("processFireBrigade: fireBrigade {} has null location", key);
+        Location location = fireBrigade.location();
+        
+        // FIX: Use fallback location from currentState if location is null
+        if (location == null) {
+            synchronized (currentState) {
+                FireBrigade existing = currentState.fireBrigades.get(key);
+                if (existing != null && existing.location() != null) {
+                    location = existing.location();
+                    log.debug("processFireBrigade: fireBrigade {} using fallback location from currentState", key);
+                } else {
+                    log.warn("processFireBrigade: fireBrigade {} has null location and no fallback available - skipping update", key);
+                    return; // Skip update if no location available
+                }
+            }
         }
+        
         synchronized (currentState) {
             Integer sectorId = fireBrigade.sectorId();
             if (sectorId == null || sectorId == 0) {
-                if (sectorsHaveContours() && fireBrigade.location() != null) {
+                if (sectorsHaveContours() && location != null) {
                     var resolvedSectorId = SectorIdResolver.resolveSectorId(
                             currentState.sectors.values().stream().toList(),
-                            fireBrigade.location());
+                            location);
                     if (resolvedSectorId.isPresent()) {
                         sectorId = resolvedSectorId.get();
                     } else {
@@ -662,9 +675,9 @@ public class SimulationStateService {
             var brigade = new FireBrigade(
                     fireBrigade.fireBrigadeId(),
                     sectorId,
-                    fireBrigade.location(),
+                    location, // Use fallback location if original was null
                     fireBrigade.state(),
-                    pl.edu.agh.kis.firebackend.model.FireBrigadeAction.EXTINGUISH);
+                    pl.edu.agh.kis.firebackend.service.model.FireBrigadeAction.EXTINGUISH);
             currentState.fireBrigades.put(key, brigade);
         }
 

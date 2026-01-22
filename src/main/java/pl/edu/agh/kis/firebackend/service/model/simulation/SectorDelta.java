@@ -1,4 +1,4 @@
-package pl.edu.agh.kis.firebackend.model.simulation;
+package pl.edu.agh.kis.firebackend.service.model.simulation;
 
 import pl.edu.agh.kis.firebackend.model.primitives.Direction;
 

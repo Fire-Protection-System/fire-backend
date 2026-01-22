@@ -1,4 +1,4 @@
-package pl.edu.agh.kis.firebackend.model;
+package pl.edu.agh.kis.firebackend.service.model;
 
 import pl.edu.agh.kis.firebackend.model.primitives.Location;
 

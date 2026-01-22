@@ -1,8 +1,8 @@
-package pl.edu.agh.kis.firebackend.model.simulation;
+package pl.edu.agh.kis.firebackend.service.model.simulation;
 
-import pl.edu.agh.kis.firebackend.model.FireBrigadeAction;
-import pl.edu.agh.kis.firebackend.model.FireBrigadeState;
-import pl.edu.agh.kis.firebackend.model.configuration.ConfFireBrigade;
+import pl.edu.agh.kis.firebackend.service.model.FireBrigadeAction;
+import pl.edu.agh.kis.firebackend.service.model.FireBrigadeState;
+import pl.edu.agh.kis.firebackend.service.model.configuration.ConfFireBrigade;
 import pl.edu.agh.kis.firebackend.model.events.EvFireBrigade;
 import pl.edu.agh.kis.firebackend.model.primitives.Location;
 

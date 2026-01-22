@@ -1,4 +1,4 @@
-package pl.edu.agh.kis.firebackend.model.configuration;
+package pl.edu.agh.kis.firebackend.service.model.configuration;
 
 //import pl.edu.agh.kis.firebackend.model.ForesterPatrol;
 import pl.edu.agh.kis.firebackend.model.primitives.Location;

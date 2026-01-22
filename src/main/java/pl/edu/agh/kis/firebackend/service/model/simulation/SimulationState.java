@@ -1,7 +1,7 @@
-package pl.edu.agh.kis.firebackend.model.simulation;
+package pl.edu.agh.kis.firebackend.service.model.simulation;
 
 import lombok.AllArgsConstructor;
-import pl.edu.agh.kis.firebackend.model.configuration.Configuration;
+import pl.edu.agh.kis.firebackend.service.model.configuration.Configuration;
 
 import pl.edu.agh.kis.firebackend.model.events.RecommendedAction;
 

@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
-import pl.edu.agh.kis.firebackend.model.frontend.FrontOrderFire;
-import pl.edu.agh.kis.firebackend.model.frontend.FrontOrderPatrol;
+import pl.edu.agh.kis.firebackend.service.model.frontend.FrontOrderFire;
+import pl.edu.agh.kis.firebackend.service.model.frontend.FrontOrderPatrol;
 import pl.edu.agh.kis.firebackend.service.HttpRequestService;
 import pl.edu.agh.kis.firebackend.service.OrdersService;
 

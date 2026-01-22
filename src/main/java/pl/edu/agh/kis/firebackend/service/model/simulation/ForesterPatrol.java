@@ -1,10 +1,10 @@
-package pl.edu.agh.kis.firebackend.model.simulation;
+package pl.edu.agh.kis.firebackend.service.model.simulation;
 
 import pl.edu.agh.kis.firebackend.model.primitives.Location;
-import pl.edu.agh.kis.firebackend.model.ForesterPatrolState;
-import pl.edu.agh.kis.firebackend.model.ForesterPatrolAction;
+import pl.edu.agh.kis.firebackend.service.model.ForesterPatrolState;
+import pl.edu.agh.kis.firebackend.service.model.ForesterPatrolAction;
 import pl.edu.agh.kis.firebackend.model.events.EvForestPatrol;
-import pl.edu.agh.kis.firebackend.model.configuration.ConfForesterPatrol;
+import pl.edu.agh.kis.firebackend.service.model.configuration.ConfForesterPatrol;
 
 public record ForesterPatrol(
     int foresterPatrolId,

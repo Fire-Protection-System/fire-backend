@@ -1,6 +1,6 @@
-package pl.edu.agh.kis.firebackend.model.configuration;
+package pl.edu.agh.kis.firebackend.service.model.configuration;
 
-import pl.edu.agh.kis.firebackend.model.SectorState;
+import pl.edu.agh.kis.firebackend.service.model.SectorState;
 
 import java.util.List;
 

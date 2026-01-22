@@ -51,3 +51,5 @@ logs/application.log
 .env 
 mvnw 
 mvnw.cmd 
+
+.local.env

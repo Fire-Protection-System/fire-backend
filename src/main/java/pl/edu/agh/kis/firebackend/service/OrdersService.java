@@ -7,13 +7,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
-import pl.edu.agh.kis.firebackend.model.FireBrigadeAction;
-import pl.edu.agh.kis.firebackend.model.ForesterPatrolAction;
-import pl.edu.agh.kis.firebackend.model.OrderFireBrigade;
-import pl.edu.agh.kis.firebackend.model.OrderForesterPatrol;
-import pl.edu.agh.kis.firebackend.model.frontend.FrontOrder;
-import pl.edu.agh.kis.firebackend.model.frontend.FrontOrderFire;
-import pl.edu.agh.kis.firebackend.model.frontend.FrontOrderPatrol;
+import pl.edu.agh.kis.firebackend.service.model.FireBrigadeAction;
+import pl.edu.agh.kis.firebackend.service.model.ForesterPatrolAction;
+import pl.edu.agh.kis.firebackend.service.model.OrderFireBrigade;
+import pl.edu.agh.kis.firebackend.service.model.OrderForesterPatrol;
+import pl.edu.agh.kis.firebackend.service.model.frontend.FrontOrder;
+import pl.edu.agh.kis.firebackend.service.model.frontend.FrontOrderFire;
+import pl.edu.agh.kis.firebackend.service.model.frontend.FrontOrderPatrol;
 import pl.edu.agh.kis.firebackend.configuration.QueueNames;
 
 @Service

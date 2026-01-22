@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import pl.edu.agh.kis.firebackend.model.configuration.Configuration;
+import pl.edu.agh.kis.firebackend.service.model.configuration.Configuration;
 import pl.edu.agh.kis.firebackend.model.events.EvLlmChat;
 import pl.edu.agh.kis.firebackend.service.HttpRequestService;
 import pl.edu.agh.kis.firebackend.service.SimulationStateService;
@@ -52,8 +52,15 @@ public class SimulationStateController
         @RequestParam(name = "llmMode", required = false, defaultValue = "false") boolean llmMode,
         @RequestBody Configuration configuration)
     {
-        // 0.25 updates per second (4000ms) for even better performance
-        long effectiveIntervalMs = (interval != null && interval > 0) ? Math.max(interval, 2000L) : 2000L;
+        // Hard limit: at most ~1 update per second (every 1000ms) to protect
+        // simulation and frontend from excessive update frequency, but still keep
+        // agents visually smooth on the map.
+        // If the frontend requests a lower interval, we clamp it up to 1000ms.
+        long effectiveIntervalMs = (interval != null && interval > 0) ? Math.max(interval, 1000L) : 1000L;
+
+        if (interval != null && interval < effectiveIntervalMs) {
+            log.info("Requested simulation interval {} ms is below minimum; clamping to {} ms", interval, effectiveIntervalMs);
+        }
 
         try {
             String supportUrl = String.format("http://%s:%d/start", supportHost, supportPort);
@@ -129,7 +136,9 @@ public class SimulationStateController
     {
         String url = String.format("http://%s:%d/orderFireBrigade", simulationHost, simulatorPort);
         try {
+            log.info("Forwarding fire brigade order to simulation at {}:{} payload={}", simulationHost, simulatorPort, payload);
             httpRequestService.sendPostRequest(url, payload);
+            log.debug("Fire brigade order successfully forwarded to simulation");
             return ResponseEntity.ok("Order forwarded to simulation");
         } catch (Exception e) {
             log.warn("Failed to forward fire brigade order to simulation at {}:{} - attempting queue fallback", simulationHost, simulatorPort);
@@ -152,7 +161,9 @@ public class SimulationStateController
     {
         String url = String.format("http://%s:%d/orderForestPatrol", simulationHost, simulatorPort);
         try {
+            log.info("Forwarding forester patrol order to simulation at {}:{} payload={}", simulationHost, simulatorPort, payload);
             httpRequestService.sendPostRequest(url, payload);
+            log.debug("Forester patrol order successfully forwarded to simulation");
             return ResponseEntity.ok("Order forwarded to simulation");
         } catch (Exception e) {
             log.warn("Failed to forward forester patrol order to simulation at {}:{} - attempting queue fallback", simulationHost, simulatorPort);

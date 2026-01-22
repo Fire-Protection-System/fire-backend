@@ -3,7 +3,7 @@ package pl.edu.agh.kis.firebackend.configuration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pl.edu.agh.kis.firebackend.model.UpdatesQueue;
+import pl.edu.agh.kis.firebackend.service.model.UpdatesQueue;
 import pl.edu.agh.kis.firebackend.model.events.*;
 import pl.edu.agh.kis.firebackend.service.StateUpdatesService;
 import reactor.core.publisher.Flux;

@@ -11,7 +11,7 @@ import com.rabbitmq.client.Delivery;
 
 import lombok.AllArgsConstructor;
 import pl.edu.agh.kis.firebackend.configuration.RoutingKeys;
-import pl.edu.agh.kis.firebackend.model.UpdatesQueue;
+import pl.edu.agh.kis.firebackend.service.model.UpdatesQueue;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.rabbitmq.BindingSpecification;

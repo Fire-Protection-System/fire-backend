@@ -1,6 +1,6 @@
 package pl.edu.agh.kis.firebackend.service.model.events;
 
-import pl.edu.agh.kis.firebackend.model.ForesterPatrolState;
+import pl.edu.agh.kis.firebackend.service.model.ForesterPatrolState;
 import pl.edu.agh.kis.firebackend.model.primitives.Location;
 
 import java.util.Date;

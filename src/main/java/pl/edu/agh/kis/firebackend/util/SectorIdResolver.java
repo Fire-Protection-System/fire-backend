@@ -2,7 +2,7 @@ package pl.edu.agh.kis.firebackend.util;
 
 import lombok.AllArgsConstructor;
 import pl.edu.agh.kis.firebackend.model.primitives.Location;
-import pl.edu.agh.kis.firebackend.model.simulation.Sector;
+import pl.edu.agh.kis.firebackend.service.model.simulation.Sector;
 
 import java.util.List;
 import java.util.Optional;

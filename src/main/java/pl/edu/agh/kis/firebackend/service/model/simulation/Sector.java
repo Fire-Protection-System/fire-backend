@@ -1,8 +1,8 @@
-package pl.edu.agh.kis.firebackend.model.simulation;
+package pl.edu.agh.kis.firebackend.service.model.simulation;
 
 import lombok.AllArgsConstructor;
-import pl.edu.agh.kis.firebackend.model.SectorState;
-import pl.edu.agh.kis.firebackend.model.configuration.ConfSector;
+import pl.edu.agh.kis.firebackend.service.model.SectorState;
+import pl.edu.agh.kis.firebackend.service.model.configuration.ConfSector;
 
 import java.util.List;
 import java.util.ArrayList;
