@@ -111,24 +111,62 @@ public class LlmPredictionIntegrationTest {
     @DisplayName("Test LLM prediction generation - full integration")
     void testLlmPredictionGeneration() throws IOException, InterruptedException {
         
-        boolean simulationRunning = isServiceRunning(simulationBaseUrl);
-        boolean supportRunning = isServiceRunning(supportBaseUrl);
+        log.info("=== Starting LLM Prediction Integration Test ===");
+        log.info("Backend URL: {}", backendBaseUrl);
+        log.info("Simulation URL: {}", simulationBaseUrl);
+        log.info("Support URL: {}", supportBaseUrl);
         
+        log.info("Checking Fire Simulation service...");
+        boolean simulationRunning = isServiceRunning(simulationBaseUrl);
         if (!simulationRunning) {
-            log.error("Fire Simulation service is NOT running!");
+            log.error("  Fire Simulation service is NOT running!");
+            log.error("  URL: {}/health", simulationBaseUrl);
+            log.error("  Check: curl -v {}/health", simulationBaseUrl);
         } else {
-            log.info("Fire Simulation service działa poprawnie.");
+            log.info("  Fire Simulation service is running");
+            try {
+                ResponseEntity<String> health = httpClient.getForEntity(simulationBaseUrl + "/health", String.class);
+                log.info("  Health response: {}", health.getBody());
+            } catch (Exception e) {
+                log.warn("  Could not get health details: {}", e.getMessage());
+            }
         }
+        
+        log.info("Checking Fire Support service...");
+        boolean supportRunning = isServiceRunning(supportBaseUrl);
         if (!supportRunning) {
-            log.error("Fire Support service is NOT running!");
+            log.error("  Fire Support service is NOT running!");
+            log.error("  URL: {}/health", supportBaseUrl);
+            log.error("  Check: curl -v {}/health", supportBaseUrl);
         } else {
-            log.info("Fire Support service działa poprawnie.");
+            log.info("  Fire Support service is running");
+            try {
+                ResponseEntity<String> health = httpClient.getForEntity(supportBaseUrl + "/health", String.class);
+                log.info("  Health response: {}", health.getBody());
+            } catch (Exception e) {
+                log.warn("  Could not get health details: {}", e.getMessage());
+            }
         }
 
         assertTrue(simulationRunning, "Fire Simulation service should be running (sprawdź logi i endpoint /health)");
         assertTrue(supportRunning, "Fire Support service should be running (sprawdź logi i endpoint /health)");
 
+        log.info("Configuring LLM mode...");
         configureLlmMode(true);
+        
+        // Verify LLM configuration
+        try {
+            ResponseEntity<Map> configResponse = httpClient.getForEntity(
+                supportBaseUrl + "/config",
+                Map.class
+            );
+            if (configResponse.getStatusCode().is2xxSuccessful() && configResponse.getBody() != null) {
+                Map config = (Map) configResponse.getBody().get("config");
+                log.info("Support service LLM config: {}", config);
+            }
+        } catch (Exception e) {
+            log.warn("Could not verify LLM config: {}", e.getMessage());
+        }
 
         log.info("Ładowanie konfiguracji lasu...");
         Path configPath = Paths.get("fire-configurations/forest/forest_5x5.json");
@@ -140,10 +178,20 @@ public class LlmPredictionIntegrationTest {
         CountDownLatch recommendationLatch = new CountDownLatch(1);
         AtomicReference<EvRecommendation> firstRecommendation = new AtomicReference<>();
 
+        log.info("Setting up recommendation listener...");
         recommendationsFlux
             .doOnNext(recommendation -> {
-                log.info("Odebrano rekomendację: {} akcji", 
-                    recommendation.recommendedActions() != null ? recommendation.recommendedActions().size() : 0);
+                int actionCount = recommendation.recommendedActions() != null ? recommendation.recommendedActions().size() : 0;
+                log.info("  Received recommendation: {} actions, timestamp: {}", 
+                    actionCount, recommendation.timestamp());
+                
+                if (actionCount > 0) {
+                    recommendation.recommendedActions().forEach(action -> {
+                        log.info("  - Action: unitId={}, sectorId={}, unitType={}", 
+                            action.unitId(), action.sectorId(), action.unitType());
+                    });
+                }
+                
                 receivedRecommendations.add(recommendation);
                 if (firstRecommendation.get() == null) {
                     firstRecommendation.set(recommendation);
@@ -151,23 +199,38 @@ public class LlmPredictionIntegrationTest {
                 }
             })
             .doOnError(error -> {
-                log.error("Błąd podczas odbierania rekomendacji: {}", error.getMessage());
+                log.error("  Error receiving recommendations: {}", error.getMessage(), error);
                 recommendationLatch.countDown();
+            })
+            .doOnSubscribe(subscription -> {
+                log.info("  Recommendation flux subscribed, waiting for messages...");
             })
             .subscribe();
 
 
-        log.info("Uruchamianie symulacji z trybem LLM...");
-        ResponseEntity<String> runResponse = httpClient.postForEntity(
-            backendBaseUrl + "/simulation/run-simulation?llmMode=true",
-            config,
-            String.class
-        );
+        log.info("Starting simulation with LLM mode...");
+        log.info("  Config: forestId={}, sectors={}, fireBrigades={}", 
+            config.forestId(), config.sectors().size(), config.fireBrigades().size());
+        
+        ResponseEntity<String> runResponse;
+        try {
+            runResponse = httpClient.postForEntity(
+                backendBaseUrl + "/simulation/run-simulation?llmMode=true",
+                config,
+                String.class
+            );
+            log.info("  Response status: {}", runResponse.getStatusCode());
+            log.info("  Response body: {}", runResponse.getBody());
+        } catch (Exception e) {
+            log.error("  Failed to start simulation: {}", e.getMessage(), e);
+            throw new AssertionError("Failed to start simulation: " + e.getMessage(), e);
+        }
 
         if (runResponse.getStatusCode().is2xxSuccessful() || runResponse.getStatusCode() == HttpStatus.OK) {
-            log.info("Symulacja: żądanie uruchomienia wysłane poprawnie (status: {}).", runResponse.getStatusCode());
+            log.info("  Simulation start request successful (status: {})", runResponse.getStatusCode());
         } else {
-            log.error("Symulacja: żądanie uruchomienia NIE powiodło się (status: {}).", runResponse.getStatusCode());
+            log.error("  Simulation start request failed (status: {})", runResponse.getStatusCode());
+            log.error("  Response body: {}", runResponse.getBody());
         }
         assertTrue(
             runResponse.getStatusCode().is2xxSuccessful() || 
@@ -192,35 +255,66 @@ public class LlmPredictionIntegrationTest {
         assertTrue(simulationStarted, "Symulacja powinna faktycznie działać po uruchomieniu (sprawdzenie /health, timeout " + timeoutSeconds + "s)");
         log.info("Symulacja uruchomiona, oczekiwanie na rekomendacje...");
 
+        log.info("Waiting for recommendations (timeout: 30s)...");
         boolean recommendationReceived = recommendationLatch.await(30, TimeUnit.SECONDS);
-        assertTrue(recommendationReceived, "Powinna zostać odebrana przynajmniej jedna rekomendacja w ciągu 30 sekund");
-        assertFalse(receivedRecommendations.isEmpty(), "Powinna zostać odebrana przynajmniej jedna rekomendacja");
+        
+        if (!recommendationReceived) {
+            log.error("  No recommendation received within 30 seconds!");
+            log.error("  Received recommendations count: {}", receivedRecommendations.size());
+            log.error("  Check RabbitMQ queue: support.recommendations");
+            log.error("  Check support service logs for errors");
+        }
+        
+        assertTrue(recommendationReceived, 
+            "Powinna zostać odebrana przynajmniej jedna rekomendacja w ciągu 30 sekund. " +
+            "Odebrano: " + receivedRecommendations.size());
+        assertFalse(receivedRecommendations.isEmpty(), 
+            "Powinna zostać odebrana przynajmniej jedna rekomendacja. " +
+            "Odebrano: " + receivedRecommendations.size());
 
         EvRecommendation recommendation = firstRecommendation.get();
         assertNotNull(recommendation, "Pierwsza rekomendacja nie powinna być nullem");
+        
+        log.info("Validating recommendation structure...");
+        boolean validStructure = TestUtils.isValidRecommendationStructure(recommendation);
+        if (!validStructure) {
+            log.error("  Invalid recommendation structure!");
+            log.error("  Recommendation: {}", recommendation);
+        }
+        assertTrue(validStructure, "Struktura rekomendacji powinna być poprawna");
 
-        assertTrue(
-            TestUtils.isValidRecommendationStructure(recommendation),
-            "Struktura rekomendacji powinna być poprawna"
-        );
+        log.info("Checking if recommendation targets active fires...");
+        boolean targetsFires = TestUtils.targetsActiveFires(recommendation, new HashSet<>(sectorsWithFire));
+        if (!targetsFires) {
+            log.warn("  Recommendation does not target active fire sectors");
+            log.warn("  Expected sectors with fire: {}", sectorsWithFire);
+            recommendation.recommendedActions().forEach(action -> {
+                log.warn("  - Action targets sector: {}", action.sectorId());
+            });
+        }
+        assertTrue(targetsFires,
+            "Rekomendacja powinna dotyczyć sektorów z aktywnym pożarem. " +
+            "Expected: " + sectorsWithFire);
 
-        assertTrue(
-            TestUtils.targetsActiveFires(recommendation, new HashSet<>(sectorsWithFire)),
-            "Rekomendacja powinna dotyczyć sektorów z aktywnym pożarem"
-        );
+        log.info("Checking if recommendation is from LLM...");
+        boolean isLlm = TestUtils.isLlmRecommendation(recommendation);
+        if (!isLlm) {
+            log.warn("  Recommendation does not appear to be from LLM");
+            log.warn("  This might be an MCTS recommendation instead");
+        }
+        assertTrue(isLlm, "Rekomendacja powinna pochodzić z LLM");
 
-        assertTrue(
-            TestUtils.isLlmRecommendation(recommendation),
-            "Rekomendacja powinna pochodzić z LLM"
-        );
-
-        log.info("Test zakończony sukcesem. Odebrano {} rekomendacji", receivedRecommendations.size());
+        log.info("=== Test completed successfully! ===");
+        log.info("Total recommendations received: {}", receivedRecommendations.size());
     }
     
     /**
      * Configure LLM mode in support service via backend.
      */
     private void configureLlmMode(boolean enabled) {
+        log.info("Configuring LLM mode: enabled={}", enabled);
+        
+        // First, configure via backend endpoint
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("enabled", enabled);
         
@@ -232,13 +326,40 @@ public class LlmPredictionIntegrationTest {
             );
             
             if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("LLM mode configured: enabled={}", enabled);
+                log.info("  LLM mode configured via backend: enabled={}", enabled);
+                log.info("  Response: {}", response.getBody());
             } else {
-                log.warn("Failed to configure LLM mode: {}", response.getStatusCode());
+                log.warn("  Failed to configure LLM mode via backend: {}", response.getStatusCode());
+                log.warn("  Response: {}", response.getBody());
             }
         } catch (Exception e) {
-            log.warn("Failed to configure LLM mode: {}", e.getMessage());
+            log.warn("  Failed to configure LLM mode via backend: {}", e.getMessage());
             // Don't fail the test - LLM mode might be configured via environment variables
+        }
+        
+        // Also configure directly via support service
+        try {
+            Map<String, Object> supportConfig = new HashMap<>();
+            supportConfig.put("recommendation_mode", enabled ? "llm" : "heuristic");
+            supportConfig.put("agent_decision_mode", enabled ? "llm" : "heuristic");
+            supportConfig.put("enable_llm_coordination", enabled);
+            supportConfig.put("enable_agent_communication", enabled);
+            
+            ResponseEntity<Map> response = httpClient.postForEntity(
+                supportBaseUrl + "/config",
+                supportConfig,
+                Map.class
+            );
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                log.info("  LLM mode configured via support service: enabled={}", enabled);
+                Map config = (Map) response.getBody().get("config");
+                log.info("  Config: {}", config);
+            } else {
+                log.warn("  Failed to configure LLM mode via support service: {}", response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.warn("  Failed to configure LLM mode via support service: {}", e.getMessage());
         }
     }
     
@@ -247,13 +368,24 @@ public class LlmPredictionIntegrationTest {
      */
     private boolean isServiceRunning(String baseUrl) {
         try {
+            String healthUrl = baseUrl + "/health";
+            log.debug("Checking service health: {}", healthUrl);
             ResponseEntity<String> response = httpClient.getForEntity(
-                baseUrl + "/health",
+                healthUrl,
                 String.class
             );
-            return response.getStatusCode().is2xxSuccessful();
+            boolean isHealthy = response.getStatusCode().is2xxSuccessful();
+            if (isHealthy) {
+                log.debug("  Service is healthy: {}", response.getBody());
+            } else {
+                log.warn("  Service returned non-2xx status: {}", response.getStatusCode());
+            }
+            return isHealthy;
         } catch (Exception e) {
             log.warn("Service at {} is not reachable: {}", baseUrl, e.getMessage());
+            if (log.isDebugEnabled()) {
+                e.printStackTrace();
+            }
             return false;
         }
     }
